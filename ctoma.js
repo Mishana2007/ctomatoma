@@ -18,7 +18,7 @@ const appointmentMessages = new Map();
 // Список админов (их Telegram ID)
 const ADMINS = [
     1301142907,
-    987654321,
+    453834377,
     555555555
 ];
 

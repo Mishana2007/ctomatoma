@@ -509,31 +509,33 @@ const openai = new OpenAI({
   
   async function analyzeTeethPhoto(imageBase64) {
     try {
-        if (!process.env.OPENAI_API_KEY) {
+        if (!process.env.OPENAI_API_KEY_Stoma) {
             throw new Error('OpenAI API key not configured');
         }
-  
+
         const response = await openai.chat.completions.create({
-            model: "gpt-4o-mini", // Обновленная модель
+            model: "gpt-4o-mini",
             messages: [{
                 role: "system",
-                content: "Вы - опытный стоматолог, который анализирует фотографии зубов и даёт рекомендации."
+                content: "Вы - опытный стоматолог с многолетним стажем. Ваша задача - тщательно проанализировать фотографию зубов и предоставить профессиональную оценку состояния полости рта, обратив внимание на: состояние эмали, наличие кариеса, состояние десен, прикус, и другие важные аспекты. Давайте четкие, но деликатные рекомендации по уходу и необходимому лечению."
             }, {
                 role: "user",
                 content: [
                     {
-                        type: "image_url",
-                        image_url: {
-                            url: `data:image/jpeg;base64,${imageBase64}`
-                        }
+                        type: "text",
+                        text: "Пожалуйста, проанализируйте состояние зубов на фотографии и предоставьте подробную оценку и рекомендации."
                     },
                     {
-                        type: "text",
-                        text: "Проанализируйте состояние зубов на фотографии и дайте рекомендации."
+                        type: "image_url",
+                        image_url: {
+                            url: `data:image/jpeg;base64,${imageBase64}`,
+                            detail: "high"
+                        }
                     }
                 ]
             }],
-            max_tokens: 500
+            max_tokens: 1000,
+            temperature: 0.7
         });
   
         if (!response.choices || response.choices.length === 0) {

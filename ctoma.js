@@ -1299,9 +1299,6 @@ async function showAdminPanel(chatId) {
 async function notifyAdminsAboutNewRequest(userId) {
     try {
         const user = await getUserInfo(userId);
-        const userLink = user.username ? 
-            `@${user.username}` : 
-            `[${user.full_name}](tg://user?id=${user.telegram_id})`;
             
         // Получаем ID последней заявки пользователя
         const lastRequest = await new Promise((resolve, reject) => {
@@ -1316,24 +1313,29 @@ async function notifyAdminsAboutNewRequest(userId) {
             });
         });
 
-        const message = `*🆕 Новая заявка на прием*\n\n` +
-                       `От: ${user.full_name}\n` +
-                       `Телефон: ${user.phone}\n` +
-                       `Email: ${user.email || 'Не указан'}\n` +
-                       `Профиль: ${userLink}\n` +
-                       `ID пользователя: \`${user.telegram_id}\`\n` +
-                       `Дата создания: ${formatDate(new Date())}`;
+        const message = `*📝 Заявка #${lastRequest.id}*\n\n` +
+                       `👤 *Пациент:* ${user.full_name}\n` +
+                       `📱 *Телефон:* ${user.phone}\n` +
+                       `📧 *Email:* ${user.email || 'Не указан'}\n` +
+                       `📅 *Дата рождения:* ${user.birthdate || 'Не указана'}\n` +
+                       `👥 *Пол:* ${user.gender === 'male' ? 'Мужской' : 'Женский'}\n` +
+                       `🔗 *Username:* ${user.username ? '@' + user.username : 'Не указан'}\n` +
+                       `⏰ *Дата создания:* ${formatDate(new Date())}`;
 
         const keyboard = {
             inline_keyboard: [
                 [
+                    { text: '✉️ Написать пользователю', url: `tg://user?id=${user.telegram_id}` }
+                ],
+                [
                     { text: '👤 Профиль пользователя', callback_data: `view_user_${user.telegram_id}` }
                 ],
                 [
-                    { text: '📝 Открыть заявку', callback_data: `view_request_${lastRequest.id}` }
+                    { text: '✅ Одобрить', callback_data: `approve_request_${lastRequest.id}` },
+                    { text: '❌ Отклонить', callback_data: `reject_request_${lastRequest.id}` }
                 ],
                 [
-                    { text: '✉️ Написать пользователю', url: `tg://user?id=${user.telegram_id}` }
+                    { text: '💬 Комментарий', callback_data: `comment_request_${lastRequest.id}` }
                 ]
             ]
         };

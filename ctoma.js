@@ -2,14 +2,20 @@ const TelegramBot = require('node-telegram-bot-api');
 const sqlite3 = require('sqlite3').verbose();
 const XLSX = require('xlsx');
 const OpenAI = require('openai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const {GoogleAIFileManager,FileState,GoogleAICacheManager,} = require("@google/generative-ai/server");
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 
 // Конфигурация бота
-const token = process.env.TokenStoma;
-let actualBotUsername = '@umodnobot';
+const token = process.env.TELEGRAM_BOT_TOKEN;
+//TokenStoma;
+const genAI = new GoogleGenerativeAI(process.env.GENAI1);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const fileManager = new GoogleAIFileManager(process.env.GENAI1);
+let actualBotUsername = '@NeKazinoBot';
 const bot = new TelegramBot(token, { polling: true });
 
 
@@ -411,221 +417,94 @@ async function clearOldPhotos(userId) {
     }
 }
 
-async function downloadPhoto(url, userId) {
-    const MAX_RETRIES = 3;
-    const RETRY_DELAY = 1000; // 1 секунда
-    let lastError;
-
-    console.log(`Starting download from URL: ${url}`);
-    console.log(`Target user ID: ${userId}`);
-
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-        try {
-            console.log(`\nAttempt ${attempt} of ${MAX_RETRIES}`);
-            await clearOldPhotos(userId);
-            
-            const fileName = `${userId}_${Date.now()}.jpg`;
-            const filePath = path.join(PHOTOS_DIR, fileName);
-            console.log(`Saving to: ${filePath}`);
-
-            const response = await axios({
-                method: 'GET',
-                url: url,
-                responseType: 'stream',
-                timeout: 30000, // Увеличено до 30 секунд
-                maxContentLength: 15 * 1024 * 1024, // Увеличено до 15MB
-                headers: {
-                    'User-Agent': 'TelegramBot/1.0',
-                    'Accept': 'image/jpeg,image/*'
-                }
-            });
-
-            console.log('Response received, starting file write...');
-            const writer = fs.createWriteStream(filePath);
-            
-            return new Promise((resolve, reject) => {
-                let receivedBytes = 0;
-                
-                response.data.on('data', (chunk) => {
-                    receivedBytes += chunk.length;
-                    if (receivedBytes % (1024 * 1024) === 0) {
-                        console.log(`Received ${receivedBytes / (1024 * 1024)} MB`);
-                    }
-                });
-
-                response.data.pipe(writer);
-                
-                writer.on('finish', () => {
-                    console.log('File write completed successfully');
-                    writer.close();
-                    resolve(filePath);
-                });
-                
-                writer.on('error', async (error) => {
-                    console.error('Error writing file:', error);
-                    writer.close();
-                    try {
-                        fs.unlinkSync(filePath);
-                        console.log('Cleaned up incomplete file');
-                    } catch (unlinkError) {
-                        console.error('Error removing incomplete file:', unlinkError);
-                    }
-                    reject(error);
-                });
-
-                response.data.on('error', async (error) => {
-                    console.error('Error in download stream:', error);
-                    writer.close();
-                    try {
-                        fs.unlinkSync(filePath);
-                        console.log('Cleaned up incomplete file');
-                    } catch (unlinkError) {
-                        console.error('Error removing incomplete file:', unlinkError);
-                    }
-                    reject(error);
-                });
-            });
-
-        } catch (error) {
-            lastError = error;
-            console.error(`Attempt ${attempt} failed:`, error.message);
-            console.error('Error details:', error);
-            
-            if (attempt < MAX_RETRIES) {
-                const waitTime = RETRY_DELAY * attempt;
-                console.log(`Waiting ${waitTime}ms before next attempt...`);
-                await new Promise(resolve => setTimeout(resolve, waitTime));
-                continue;
-            }
-        }
-    }
-
-    throw new Error(`Failed to download photo after ${MAX_RETRIES} attempts. Last error: ${lastError.message}`);
-}
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY_Stoma // Замените на ваш API ключ
-  });
-  
-  async function analyzeTeethPhoto(imageBase64) {
-    try {
-        if (!process.env.OPENAI_API_KEY_Stoma) {
-            throw new Error('OpenAI API key not configured');
-        }
-
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [{
-                role: "system",
-                content: `Вы - ведущий эксперт в области стоматологии. Ваша задача - проводить предварительный анализ состояния полости рта по фотографиям. Анализ должен включать оценку: цвета зубов, состояния поверхности, здоровья дёсен, прикуса и выравнивания зубов. Важно: не ставить окончательный диагноз, но отмечать все видимые проблемы и давать рекомендации по уходу и необходимости посещения специалиста..`
-            }, {
-                role: "user",
-                content: [
-                    {
-                        type: "text",
-                        text: "Пожалуйста, проанализируйте фото по следующим критериям:\n" +
-                      "1. Цвет зубов (белизна, пятна, изменения)\n" +
-                      "2. Поверхность зубов (трещины, сколы, неровности)\n" +
-                      "3. Состояние дёсен (цвет, отёчность)\n" +
-                      "4. Прикус и выравнивание\n\n" +
-                      "Предоставьте структурированный ответ с:\n" +
-                      "- Анализом состояния\n" +
-                      "- Рекомендациями по уходу (включая средства гигиены)\n" +
-                      "- Советами по обращению к специалисту\n" +
-                      "Если качество фото недостаточное, укажите рекомендации по улучшению съёмки."
-            },
-                    {
-                        type: "image_url",
-                        image_url: {
-                            url: `data:image/jpeg;base64,${imageBase64}`,
-                            detail: "high"
-                        }
-                    }
-                ]
-            }],
-            max_tokens: 1000,
-            temperature: 0.7
-        });
-  
-        if (!response.choices || response.choices.length === 0) {
-            throw new Error('Нет ответа от GPT');
-        }
-        
-        return `🦷 Анализ состояния зубов:\n\n${response.choices[0].message.content}`;
-    } catch (error) {
-        console.error('Ошибка при получении рекомендации от GPT:', error);
-        if (error.response?.status === 401) {
-            return 'Извините, сервис анализа временно недоступен. Пожалуйста, обратитесь к администратору.';
-        }
-        throw error;
-    }
-  }
-  
-  // Обновленная функция handleTeethPhoto с обработкой ошибок
-  async function handleTeethPhoto(msg) {
+async function handleTeethPhoto(msg) {
     const chatId = msg.chat.id;
-    
-    try {
-        // Проверяем лимит запросов
-        const hasAvailableRequests = await checkTeethAnalysisLimit(chatId);
-        if (!hasAvailableRequests) {
-            await bot.sendMessage(
-                chatId,
-                'К сожалению, вы уже использовали максимальное количество запросов на анализ зубов (2 запроса).',
-                { reply_markup: await isAdmin(chatId) ? adminMenuKeyboard : mainMenuKeyboard }
-            );
-            return;
-        }
+    const state = userStates.get(chatId);
 
-        await bot.sendMessage(chatId, '🔍 Анализирую фотографию ваших зубов...');
-
-        const photo = msg.photo[msg.photo.length - 1];
-        const file = await bot.getFile(photo.file_id);
-        const photoUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
-        
-        const photoPath = await downloadPhoto(photoUrl, chatId);
-        const imageBuffer = fs.readFileSync(photoPath);
-        const base64Image = imageBuffer.toString('base64');
-
-        let analysis;
+    if (state && state.state === 'WAITING_FOR_TEETH_PHOTO') {
         try {
-            analysis = await analyzeTeethPhoto(base64Image);
-            // Записываем запрос только после успешного анализа
-            await recordTeethAnalysisRequest(chatId);
+            bot.sendMessage(chatId, `🔍 Анализирую фотографию ваших зубов...`);
+            // Получаем ID последней фотографии из массива photo
+            const photoId = msg.photo[msg.photo.length - 1].file_id;
 
-            // Получаем оставшееся количество запросов
-            const remainingRequests = 2 - await new Promise((resolve, reject) => {
-                db.get(
-                    'SELECT COUNT(*) as count FROM teeth_analysis_requests WHERE telegram_id = ?',
-                    [chatId],
-                    (err, row) => {
-                        if (err) reject(err);
-                        else resolve(row.count);
-                    }
-                );
-            });
+            // Получаем URL для скачивания фотографии
+            const file = await bot.getFile(photoId);
+            const fileUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
 
-            analysis += `\n\n*Оставшиеся запросы на анализ: ${remainingRequests}*`;
+            // Скачиваем фотографию
+            const photoResponse = await axios.get(fileUrl, { responseType: 'arraybuffer' });
+            const fs = require('fs');
+            const filePath = `/tmp/${photoId}.jpg`; // Путь для временного сохранения
+
+            // Сохраняем файл
+            fs.writeFileSync(filePath, photoResponse.data);
+
+            // Загружаем файл в Gemini
+            const uploadResult = await fileManager.uploadFile(filePath, { mimeType: "image/jpeg" });
+
+            // Подготовка файла для запроса
+            const photoPart = {
+                fileData: {
+                    fileUri: uploadResult.file.uri,
+                    mimeType: uploadResult.file.mimeType,
+                },
+            };
+
+            // Формируем промпт для модели
+            const prompt = `
+                ТЫ - ВЕДУЩИЙ ЭКСПЕРТ В ОБЛАСТИ СТОМАТОЛОГИИ. ТВОЯ ЗАДАЧА - НА ОСНОВЕ ПРЕДОСТАВЛЕННОГО ФОТО сделать предварительный анализ СОСТОЯНИЯ ЗУБОВ И ДЁСЕН, а также прикуса и кривости зубов, ПРЕДЛОЖИТЬ РЕКОМЕНДАЦИИ ПО ЕЖЕДНЕВНОМУ УХОДУ. УТОЧНИТЬ если СЛЕДУЕТ ОБРАТИТЬСЯ К СТОМАТОЛОГУ.
+
+                ЦЕЛИ:
+                Сделать предварительный анализ ФОТО ПО СЛЕДУЮЩИМ КРИТЕРИЯМ:
+                - Цвет зубов: белизна, пятна, изменение цвета
+                - Поверхность зубов: трещины, сколы, неровности
+                - Состояние дёсен: покраснение, отёк, кровоточивость
+                - Прикус и искривление зубов
+
+                ЕСЛИ ФОТО НИЗКОГО КАЧЕСТВА:
+                Дать рекомендации для съёмки (освещение, ракурс, качество фото).
+
+                ПРЕДЛОЖИТЬ УЛУЧШЕННЫЙ УХОД:
+                Ирригатор, зубная нить, пасты, ополаскиватели, диета.
+
+                Используй следующий формат ответа:
+
+                АНАЛИЗ ФОТО:
+                [Подробное описание состояния зубов и дёсен]
+
+                ПРЕДЛОЖЕНИЯ ПО УХОДУ:
+                [Дневной уход и профилактические меры]
+
+                РЕКОМЕНДАЦИИ ПО ВИЗИТУ К ВРАЧУ:
+                [Уточнить, в каких случаях обязательно обратиться к стоматологу]
+
+                ЗАКЛЮЧЕНИЕ:
+                [Резюме действий для пользователя]
+            `;
+
+            // Отправляем запрос в модель
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+            const generateResult = await model.generateContent([prompt, photoPart]);
+            const response = await generateResult.response;
+            const responseText = await response.text();
+
+            // Проверяем результат
+            if (!responseText || responseText.toLowerCase().includes("не могу анализировать")) {
+                throw new Error('Модель отказалась анализировать фото');
+            }
+
+            // Отправляем результат пользователю
+            await bot.sendMessage(chatId, `${responseText}`);
         } catch (error) {
-            console.error('Error analyzing photo:', error);
-            analysis = 'Извините, произошла ошибка при анализе фотографии. Пожалуйста, попробуйте позже или обратитесь к администратору.';
+            console.error('Ошибка при обработке фотографии:', error);
+            await bot.sendMessage(chatId, 'Произошла ошибка при анализе фотографии. Пожалуйста, попробуйте позже.');
+        } finally {
+            userStates.delete(chatId);
         }
-
-        await bot.sendMessage(chatId, analysis, {
-            parse_mode: 'Markdown',
-            reply_markup: await isAdmin(chatId) ? adminMenuKeyboard : mainMenuKeyboard
-        });
-
-    } catch (error) {
-        console.error('Error in handleTeethPhoto:', error);
-        await bot.sendMessage(chatId,
-            'Произошла ошибка при обработке фотографии. Пожалуйста, попробуйте еще раз.',
-            { reply_markup: await isAdmin(chatId) ? adminMenuKeyboard : mainMenuKeyboard }
-        );
-    } finally {
-        userStates.delete(chatId);
     }
 }
+
 
 // Функции для работы с акциями
 async function addPromotion(chatId, text) {

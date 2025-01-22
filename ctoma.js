@@ -15,7 +15,7 @@ const token = process.env.TELEGRAM_BOT_TOKEN;
 const genAI = new GoogleGenerativeAI(process.env.GENAI1);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 const fileManager = new GoogleAIFileManager(process.env.GENAI1);
-let actualBotUsername = '@NeKazinoBot';
+let actualBotUsername = '@umodnobot';
 const bot = new TelegramBot(token, { polling: true });
 
 

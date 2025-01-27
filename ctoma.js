@@ -8,10 +8,11 @@ const {
   FileState,
   GoogleAICacheManager,
 } = require("@google/generative-ai/server");
-require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
+const FormData = require('form-data');
+require("dotenv").config();
 
 // Конфигурация бота
 const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -192,7 +193,7 @@ function validateTime(time) {
 const mainMenuKeyboard = {
   keyboard: [
     ["📝 Запись на прием", "💫 Акции"],
-    ["💬 Отзывы", "ℹ️ О клинике"],
+    ["💬 Оставить отзыв", "ℹ️ О клинике"],
     ["👤 Профиль", "🤝 Рекомендовать"],
     ["🦷 Анализ зубов"],
   ],
@@ -202,7 +203,7 @@ const mainMenuKeyboard = {
 const adminMenuKeyboard = {
   keyboard: [
     ["📝 Запись на прием", "💫 Акции"],
-    ["💬 Отзывы", "ℹ️ О клинике"],
+    ["💬 Оставить отзыв", "ℹ️ О клинике"],
     ["👤 Профиль", "🤝 Рекомендовать"],
     ["⚙️ Админ-панель", "🦷 Анализ зубов"],
   ],
@@ -526,12 +527,15 @@ async function handleTeethPhoto(msg) {
 
       // Отправляем результат пользователю
       await bot.sendMessage(chatId, `${responseText}`);
+
+      await showMainMenu(chatId, "Выберите действие:");
     } catch (error) {
       console.error("Ошибка при обработке фотографии:", error);
       await bot.sendMessage(
         chatId,
         "Произошла ошибка при анализе фотографии. Пожалуйста, попробуйте позже."
       );
+      await showMainMenu(chatId, "Выберите действие:");
     } finally {
       userStates.delete(chatId);
     }
@@ -954,37 +958,6 @@ async function showEditGenderKeyboard(chatId) {
     reply_markup: genderKeyboard,
   });
 }
-
-// async function showMyAppointments(chatId) {
-//     try {
-//         const appointments = await new Promise((resolve, reject) => {
-//             db.all(`
-//                 SELECT * FROM appointment_requests
-//                 WHERE telegram_id = ?
-//                 ORDER BY created_at DESC
-//             `, [chatId], (err, rows) => {
-//                 if (err) reject(err);
-//                 else resolve(rows);
-//             });
-//         });
-
-//         if (appointments.length === 0) {
-//             await bot.sendMessage(chatId, 'У вас пока нет записей на прием.');
-//             return;
-//         }
-
-//         let message = '*📅 Ваши записи на прием:*\n\n';
-//         for (const appointment of appointments) {
-//             message += `Дата создания: ${formatDate(new Date(appointment.created_at))}\n` +
-//                       `Статус: ${getStatusText(appointment.status)}\n\n`;
-//         }
-
-//         await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
-//     } catch (error) {
-//         console.error('Error in showMyAppointments:', error);
-//         await bot.sendMessage(chatId, 'Произошла ошибка при загрузке ваших записей.');
-//     }
-// }
 
 // Функции для работы с заявками
 async function handleAppointmentRequest(chatId) {
@@ -1760,40 +1733,80 @@ async function showPendingRequests(chatId) {
 // Функция для обработки информации о клинике
 async function showClinicInfo(chatId) {
     const clinicInfo =
-      `🏥 *О нашей клинике*\n\n` +
-      `Мы - современная стоматологическая клиника, оснащенная передовым оборудованием и укомплектованная опытными специалистами.\n\n` +
-      `🕒 *График работы:*\n` +
-      `Пн-Вс, без выходных 9:00 - 21:00\n\n` +
-      `📍 *Адрес:*\n` +
-      `г. Санкт-Петербург, Большой пр-т, Петроградской стороны, д 69.\n\n` +
-      `📱 *Контакты:*\n` +
-      `Телефон: +7 (981) 879 67 82, 8 (812) 606 77 50\n` +
-      `Email: office@u-modno.ru\n` +
-      `Сайт: u-modno.ru\n\n` +
-      `🌟 *Наши услуги:*\n` +
-      `• Профессиональная гигиена\n` +
-      `• Лечение кариеса\n` +
-      `• Имплантация\n` +
-      `• Протезирование\n` +
-      `• Исправление прикуса\n` +
-      `• Отбеливание`;
-  
+        `🏥 *О нашей клинике*\n\n` +
+        `Мы - современная стоматологическая клиника, оснащенная передовым оборудованием и укомплектованная опытными специалистами.\n\n` +
+        `🕒 *График работы:*\n` +
+        `Пн-Вс, без выходных 9:00 - 21:00\n\n` +
+        `📍 *Адрес:*\n` +
+        `г. Санкт-Петербург, Большой пр-т, Петроградской стороны, д 69.\n\n` +
+        `📱 *Контакты:*\n` +
+        `Телефон: +7 (981) 879 67 82, 8 (812) 606 77 50\n` +
+        `Email: office@u-modno.ru\n` +
+        `Сайт: u-modno.ru\n\n` +
+        `🌟 *Наши услуги:*\n` +
+        `• Профессиональная гигиена\n` +
+        `• Лечение кариеса\n` +
+        `• Имплантация\n` +
+        `• Протезирование\n` +
+        `• Исправление прикуса\n` +
+        `• Отбеливание`;
+
     // Пути к фотографиям (замените на реальные пути или URL)
     const photo1 = 'photo1.jpeg'; // URL или путь к файлу
     const photo2 = 'photo2.jpeg'; // URL или путь к файлу
     const photo3 = 'photo3.jpeg'; // URL или путь к файлу
-  
-    // Создаем массив медиафайлов
-    const media = [
-      { type: 'photo', media: photo1, caption: clinicInfo, parse_mode: 'Markdown' },
-      { type: 'photo', media: photo2 },
-      { type: 'photo', media: photo3 },
-    ];
-  
-    // Отправляем медиагруппу
-    await bot.sendMediaGroup(chatId, media);
-  }
-  
+
+    try {
+        // Отправляем медиагруппу
+        await bot.sendMediaGroup(chatId, [
+            {
+                type: 'photo',
+                media: fs.createReadStream(photo1),
+                caption: clinicInfo,
+                parse_mode: 'Markdown'
+            },
+            {
+                type: 'photo',
+                media: fs.createReadStream(photo2)
+            },
+            {
+                type: 'photo',
+                media: fs.createReadStream(photo3)
+            }
+        ]);
+    } catch (error) {
+        console.error('Error sending media group:', error);
+        // В случае ошибки пробуем отправить фотографии по одной
+        try {
+            // Отправляем первое фото с текстом
+            await bot.sendPhoto(chatId, fs.createReadStream(photo1), {
+                caption: clinicInfo,
+                parse_mode: 'Markdown'
+            });
+            // Отправляем остальные фото
+            await bot.sendPhoto(chatId, fs.createReadStream(photo2));
+            await bot.sendPhoto(chatId, fs.createReadStream(photo3));
+        } catch (photoError) {
+            console.error('Error sending individual photos:', photoError);
+            // Если и это не получилось, отправляем только текст
+            await bot.sendMessage(chatId, clinicInfo, { parse_mode: 'Markdown' });
+        }
+    }
+
+    // Отправляем инлайн-кнопки с ссылками
+    const inlineKeyboard = {
+        inline_keyboard: [
+            [{ text: "Отзывы на Яндексе", url: "https://yandex.ru/maps/org/ulybatsya_modno/186973513026/reviews/?ll=30.309966%2C59.964224&z=16" }],
+            [{ text: "Отзывы на 2гис", url: "https://2gis.ru/spb/firm/70000001032573404/tab/reviews?m=30.313264%2C59.969843%2F14.93" }],
+            [{ text: "Отзывы на Напоправку", url: "https://spb.napopravku.ru/clinics/ulybatsa-modno-centr-ortodonticeskoj-stomatologii/otzyvy/" }],
+            [{ text: "Отзывы на ПроДокторов", url: "https://prodoctorov.ru/spb/lpu/58760-ulybatsya-modno/" }],
+        ]
+    };
+
+    await bot.sendMessage(chatId, 'Отзывы на клинику можно прочитать здесь', {
+        reply_markup: inlineKeyboard
+    });
+}
 
 // Функция для обработки реферальной системы
 async function handleReferralSystem(chatId) {
@@ -1835,21 +1848,19 @@ async function handleReferralSystem(chatId) {
 }
 
 function showReviews(chatId) {
-  const message = "Пожалуйста, выберите платформу для просмотра отзывов:";
+  const message = "Спасибо, что хотите поделиться своим отзывом! Вы можете разместить его на удобной для вас платформе и получить за это 100 баллов. Если вы оставите отзывы на всех четырех платформах, вы получите дополнительные 100 баллов!";
 
   const inlineKeyboard = {
     inline_keyboard: [
-      [
-        { text: "Отзывы Яндекс", url: "https://google.com" },
-        { text: "Отзывы 2гис", url: "https://yelp.com" },
-      ],
-      [
-        { text: "Отзывы Напоправку", url: "https://tripadvisor.com" },
-        { text: "Отзывы ПроДокторов", url: "https://trustpilot.com" },
-      ],
+        [{ text: "Оставить отзыв на Яндексе", url: "https://yandex.ru/maps/org/ulybatsya_modno/186973513026/reviews/?ll=30.309966%2C59.964224&z=16" }],
+        [{ text: "Оставить отзыв на 2гис", url: "https://2gis.ru/spb/firm/70000001032573404/tab/reviews?m=30.313264%2C59.969843%2F14.93" }],
+        [{ text: "Оставить отзыв на Напоправку", url: "https://spb.napopravku.ru/clinics/ulybatsa-modno-centr-ortodonticeskoj-stomatologii/otzyvy/" }],
+        [{ text: "Оставить отзыв на ПроДокторов", url: "https://prodoctorov.ru/spb/lpu/58760-ulybatsya-modno/" }],
     ],
   };
 
+
+  
   bot.sendMessage(chatId, message, {
     reply_markup: inlineKeyboard,
   });
@@ -2656,7 +2667,7 @@ bot.on("text", async (msg) => {
         await handleReferralSystem(chatId);
         break;
 
-      case "💬 Отзывы":
+      case "💬 Оставить отзыв":
         await showReviews(chatId);
         break;
 

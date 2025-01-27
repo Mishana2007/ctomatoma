@@ -1752,9 +1752,9 @@ async function showClinicInfo(chatId) {
         `• Отбеливание`;
 
     // Пути к фотографиям (замените на реальные пути или URL)
-    const photo1 = 'photo1.jpeg'; // URL или путь к файлу
-    const photo2 = 'photo2.jpeg'; // URL или путь к файлу
-    const photo3 = 'photo3.jpeg'; // URL или путь к файлу
+    const photo1 = './photo1.jpeg'; // URL или путь к файлу
+    const photo2 = './photo2.jpeg'; // URL или путь к файлу
+    const photo3 = './photo3.jpeg'; // URL или путь к файлу
 
     try {
         // Отправляем медиагруппу

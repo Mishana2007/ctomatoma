@@ -1752,26 +1752,26 @@ async function showClinicInfo(chatId) {
         `• Отбеливание`;
 
     // Пути к фотографиям (замените на реальные пути или URL)
-    const photo1 = './photo1.jpeg'; // URL или путь к файлу
-    const photo2 = './photo2.jpeg'; // URL или путь к файлу
-    const photo3 = './photo3.jpeg'; // URL или путь к файлу
+    const photo1 = 'https://i.ibb.co/T1Z6Y7f/photo1.jpg'; // URL или путь к файлу
+    const photo2 = 'https://i.ibb.co/3hMrsTY/photo2.jpg'; // URL или путь к файлу
+    const photo3 = 'https://i.ibb.co/DzRypJ4/photo3.jpg'; // URL или путь к файлу
 
     try {
         // Отправляем медиагруппу
         await bot.sendMediaGroup(chatId, [
             {
                 type: 'photo',
-                media: fs.createReadStream(photo1),
+                media: photo1,
                 caption: clinicInfo,
                 parse_mode: 'Markdown'
             },
             {
                 type: 'photo',
-                media: fs.createReadStream(photo2)
+                media: photo2
             },
             {
                 type: 'photo',
-                media: fs.createReadStream(photo3)
+                media: photo3
             }
         ]);
     } catch (error) {

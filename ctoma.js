@@ -154,13 +154,12 @@ db.serialize(() => {
 
 // Константы состояний и шагов
 const STEPS = {
-  PHONE: "PHONE",
-  BIRTHDATE: "BIRTHDATE",
-  EMAIL: "EMAIL",
-  GENDER: "GENDER",
-  FULL_NAME: "FULL_NAME",
-  COMPLETED: "COMPLETED",
-};
+    PHONE: "PHONE",
+    BIRTHDATE: "BIRTHDATE",
+    GENDER: "GENDER",
+    FULL_NAME: "FULL_NAME",
+    COMPLETED: "COMPLETED",
+  };
 
 const EDIT_STATES = {
   WAITING_FOR_FIELD: "WAITING_FOR_FIELD",
@@ -323,9 +322,9 @@ function validateDate(date) {
   );
 }
 
-function validateEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
+// function validateEmail(email) {
+//   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+// }
 
 function validateFullName(name) {
   const parts = name.trim().split(" ");
@@ -336,14 +335,13 @@ function validateFullName(name) {
 }
 
 function formatUserDataForConfirmation(user) {
-  return (
-    `*👤 ФИО:* ${user.full_name || "Не указано"}\n` +
-    `*📱 Телефон:* ${user.phone || "Не указан"}\n` +
-    `*📅 Дата рождения:* ${user.birthdate || "Не указана"}\n` +
-    `*📧 Email:* ${user.email || "Не указан"}\n` +
-    `*👥 Пол:* ${user.gender === "male" ? "Мужской" : "Женский"}\n`
-  );
-}
+    return (
+      `*👤 ФИО:* ${user.full_name || "Не указано"}\n` +
+      `*📱 Телефон:* ${user.phone || "Не указан"}\n` +
+      `*📅 Дата рождения:* ${user.birthdate || "Не указана"}\n` +
+      `*👥 Пол:* ${user.gender === "male" ? "Мужской" : "Женский"}\n`
+    );
+  }
 
 // Вспомогательные функции для заявок
 function getStatusText(status) {
@@ -760,174 +758,145 @@ async function startRegistration(chatId, username) {
   }
 }
 async function continueRegistration(chatId, step) {
-  try {
-    switch (step) {
-      case STEPS.PHONE:
-        const keyboard = {
-          keyboard: [
-            [
-              {
-                text: "📱 Отправить номер телефона",
-                request_contact: true,
-              },
+    try {
+      switch (step) {
+        case STEPS.PHONE:
+          const keyboard = {
+            keyboard: [
+              [
+                {
+                  text: "📱 Отправить номер телефона",
+                  request_contact: true,
+                },
+              ],
+              ["Ввести номер вручную"],
             ],
-            ["Ввести номер вручную"],
-          ],
-          resize_keyboard: true,
-        };
-        await bot.sendMessage(
-          chatId,
-          "Пожалуйста, поделитесь своим номером телефона:",
-          { reply_markup: keyboard }
-        );
-        break;
-      case STEPS.BIRTHDATE:
-        await bot.sendMessage(
-          chatId,
-          "Введите вашу дату рождения в формате ДД.ММ.ГГГГ:",
-          { reply_markup: { remove_keyboard: true } }
-        );
-        break;
-      case STEPS.EMAIL:
-        await bot.sendMessage(
-          chatId,
-          'Введите ваш email (или нажмите "Пропустить"):',
-          { reply_markup: skipKeyboard }
-        );
-        break;
-      case STEPS.GENDER:
-        await showGenderKeyboard(chatId);
-        break;
-      case STEPS.FULL_NAME:
-        await bot.sendMessage(
-          chatId,
-          "Введите ваши ФИО полностью (Фамилия Имя Отчество):",
-          { reply_markup: { remove_keyboard: true } }
-        );
-        break;
-    }
-  } catch (error) {
-    console.error("Error in continueRegistration:", error);
-    await bot.sendMessage(chatId, "Произошла ошибка. Попробуйте позже.");
-  }
-}
-
-async function handleRegistrationStep(chatId, text, step) {
-  try {
-    switch (step) {
-      case STEPS.PHONE:
-        if (validatePhone(text)) {
-          await updateUser(chatId, "phone", text);
-          await updateUser(chatId, "registration_step", STEPS.BIRTHDATE);
+            resize_keyboard: true,
+          };
           await bot.sendMessage(
             chatId,
-            "Отлично! Теперь введите вашу дату рождения в формате ДД.ММ.ГГГГ:",
+            "Пожалуйста, поделитесь своим номером телефона:",
+            { reply_markup: keyboard }
+          );
+          break;
+        case STEPS.BIRTHDATE:
+          await bot.sendMessage(
+            chatId,
+            "Введите вашу дату рождения в формате ДД.ММ.ГГГГ:",
             { reply_markup: { remove_keyboard: true } }
           );
-        } else {
-          await bot.sendMessage(
-            chatId,
-            "Пожалуйста, введите корректный номер телефона в формате +7XXXXXXXXXX"
-          );
-        }
-        break;
-
-      case STEPS.BIRTHDATE:
-        if (validateDate(text)) {
-          await updateUser(chatId, "birthdate", text);
-          await updateUser(chatId, "registration_step", STEPS.EMAIL);
-          await bot.sendMessage(
-            chatId,
-            'Введите ваш email (или нажмите "Пропустить"):',
-            { reply_markup: skipKeyboard }
-          );
-        } else {
-          await bot.sendMessage(
-            chatId,
-            "Пожалуйста, введите корректную дату в формате ДД.ММ.ГГГГ"
-          );
-        }
-        break;
-
-      case STEPS.EMAIL:
-        if (text === "⏭️ Пропустить") {
-          await updateUser(chatId, "registration_step", STEPS.GENDER);
+          break;
+        case STEPS.GENDER:
           await showGenderKeyboard(chatId);
-        } else if (validateEmail(text)) {
-          await updateUser(chatId, "email", text);
-          await updateUser(chatId, "registration_step", STEPS.GENDER);
-          await showGenderKeyboard(chatId);
-        } else {
+          break;
+        case STEPS.FULL_NAME:
           await bot.sendMessage(
             chatId,
-            'Пожалуйста, введите корректный email или нажмите "Пропустить"',
-            { reply_markup: skipKeyboard }
+            "Введите ваши ФИО полностью (Фамилия Имя Отчество):",
+            { reply_markup: { remove_keyboard: true } }
           );
-        }
-        break;
-
-      case STEPS.FULL_NAME:
-        if (validateFullName(text)) {
-          await updateUser(chatId, "full_name", text);
-          await updateUser(chatId, "registration_step", STEPS.COMPLETED);
-          await bot.sendMessage(
-            chatId,
-            "✅ Регистрация успешно завершена!\n\nТеперь вы можете пользоваться всеми функциями бота.",
-            {
-              reply_markup: (await isAdmin(chatId))
-                ? adminMenuKeyboard
-                : mainMenuKeyboard,
-            }
-          );
-        } else {
-          await bot.sendMessage(
-            chatId,
-            "Пожалуйста, введите ФИО полностью (Фамилия Имя Отчество)"
-          );
-        }
-        break;
+          break;
+      }
+    } catch (error) {
+      console.error("Error in continueRegistration:", error);
+      await bot.sendMessage(chatId, "Произошла ошибка. Попробуйте позже.");
     }
-  } catch (error) {
-    console.error("Error in handleRegistrationStep:", error);
-    await bot.sendMessage(chatId, "Произошла ошибка. Попробуйте позже.");
   }
-}
+
+  async function handleRegistrationStep(chatId, text, step) {
+    try {
+      switch (step) {
+        case STEPS.PHONE:
+          if (validatePhone(text)) {
+            await updateUser(chatId, "phone", text);
+            await updateUser(chatId, "registration_step", STEPS.BIRTHDATE);
+            await bot.sendMessage(
+              chatId,
+              "Отлично! Теперь введите вашу дату рождения в формате ДД.ММ.ГГГГ:",
+              { reply_markup: { remove_keyboard: true } }
+            );
+          } else {
+            await bot.sendMessage(
+              chatId,
+              "Пожалуйста, введите корректный номер телефона в формате +7XXXXXXXXXX"
+            );
+          }
+          break;
+  
+        case STEPS.BIRTHDATE:
+          if (validateDate(text)) {
+            await updateUser(chatId, "birthdate", text);
+            await updateUser(chatId, "registration_step", STEPS.GENDER);
+            await showGenderKeyboard(chatId);
+          } else {
+            await bot.sendMessage(
+              chatId,
+              "Пожалуйста, введите корректную дату в формате ДД.ММ.ГГГГ"
+            );
+          }
+          break;
+  
+        case STEPS.FULL_NAME:
+          if (validateFullName(text)) {
+            await updateUser(chatId, "full_name", text);
+            await updateUser(chatId, "registration_step", STEPS.COMPLETED);
+            await bot.sendMessage(
+              chatId,
+              "✅ Регистрация успешно завершена!\n\nТеперь вы можете пользоваться всеми функциями бота.",
+              {
+                reply_markup: (await isAdmin(chatId))
+                  ? adminMenuKeyboard
+                  : mainMenuKeyboard,
+              }
+            );
+          } else {
+            await bot.sendMessage(
+              chatId,
+              "Пожалуйста, введите ФИО полностью (Фамилия Имя Отчество)"
+            );
+          }
+          break;
+      }
+    } catch (error) {
+      console.error("Error in handleRegistrationStep:", error);
+      await bot.sendMessage(chatId, "Произошла ошибка. Попробуйте позже.");
+    }
+  }
 
 // Функции для управления профилем
 async function showProfile(chatId) {
-  try {
-    const user = await getUserInfo(chatId);
-    if (!user) {
-      await bot.sendMessage(chatId, "Профиль не найден.");
-      return;
+    try {
+      const user = await getUserInfo(chatId);
+      if (!user) {
+        await bot.sendMessage(chatId, "Профиль не найден.");
+        return;
+      }
+  
+      let message =
+        `*👤 Ваш профиль*\n\n` +
+        `*ФИО:* ${user.full_name || "Не указано"}\n` +
+        `*Телефон:* ${user.phone || "Не указан"}\n` +
+        `*Дата рождения:* ${user.birthdate || "Не указана"}\n` +
+        `*Пол:* ${user.gender === "male" ? "Мужской" : "Женский"}\n` +
+        `*ID:* \`${user.telegram_id}\`\n` +
+        `*Дата регистрации:* ${formatDate(new Date(user.created_at))}`;
+  
+      const keyboard = {
+        inline_keyboard: [
+          [{ text: "✏️ Редактировать данные", callback_data: "edit_profile" }],
+          [{ text: "📅 Мои записи", callback_data: "my_appointments" }],
+        ],
+      };
+  
+      await bot.sendMessage(chatId, message, {
+        parse_mode: "Markdown",
+        reply_markup: keyboard,
+      });
+    } catch (error) {
+      console.error("Error in showProfile:", error);
+      await bot.sendMessage(chatId, "Ошибка при загрузке профиля");
     }
-
-    let message =
-      `*👤 Ваш профиль*\n\n` +
-      `*ФИО:* ${user.full_name || "Не указано"}\n` +
-      `*Телефон:* ${user.phone || "Не указан"}\n` +
-      `*Email:* ${user.email || "Не указан"}\n` +
-      `*Дата рождения:* ${user.birthdate || "Не указана"}\n` +
-      `*Пол:* ${user.gender === "male" ? "Мужской" : "Женский"}\n` +
-      `*ID:* \`${user.telegram_id}\`\n` +
-      `*Дата регистрации:* ${formatDate(new Date(user.created_at))}`;
-
-    const keyboard = {
-      inline_keyboard: [
-        [{ text: "✏️ Редактировать данные", callback_data: "edit_profile" }],
-        [{ text: "📅 Мои записи", callback_data: "my_appointments" }],
-      ],
-    };
-
-    await bot.sendMessage(chatId, message, {
-      parse_mode: "Markdown",
-      reply_markup: keyboard,
-    });
-  } catch (error) {
-    console.error("Error in showProfile:", error);
-    await bot.sendMessage(chatId, "Ошибка при загрузке профиля");
   }
-}
 
 async function showGenderKeyboard(chatId) {
   const genderKeyboard = {
@@ -1053,61 +1022,54 @@ async function submitAppointmentRequest(chatId) {
 }
 
 async function handleEditCallback(chatId, data) {
-  const field = data.split("_")[1];
-
-  switch (field) {
-    case "phone":
-      userStates.set(chatId, { state: EDIT_STATES.EDITING_PHONE });
-      await bot.sendMessage(
-        chatId,
-        "Введите новый номер телефона в формате +7XXXXXXXXXX:",
-        { reply_markup: backToAppointmentKeyboard }
-      );
-      break;
-
-    case "birthdate":
-      userStates.set(chatId, { state: EDIT_STATES.EDITING_BIRTHDATE });
-      await bot.sendMessage(
-        chatId,
-        "Введите новую дату рождения в формате ДД.ММ.ГГГГ:",
-        { reply_markup: backToAppointmentKeyboard }
-      );
-      break;
-
-    case "email":
-      userStates.set(chatId, { state: EDIT_STATES.EDITING_EMAIL });
-      await bot.sendMessage(chatId, "Введите новый email:", {
-        reply_markup: backToAppointmentKeyboard,
-      });
-      break;
-
-    case "fullname":
-      userStates.set(chatId, { state: EDIT_STATES.EDITING_FULLNAME });
-      await bot.sendMessage(
-        chatId,
-        "Введите ваши ФИО полностью (Фамилия Имя Отчество):",
-        { reply_markup: backToAppointmentKeyboard }
-      );
-      break;
-
-    case "gender":
-      userStates.set(chatId, { state: EDIT_STATES.EDITING_GENDER });
-      await showEditGenderKeyboard(chatId);
-      break;
-
-    case "all":
-      userStates.set(chatId, {
-        state: EDIT_STATES.EDITING_ALL,
-        currentField: "phone",
-      });
-      await startEditAllProcess(chatId);
-      break;
-
-    case "back":
-      await handleAppointmentRequest(chatId);
-      break;
+    const field = data.split("_")[1];
+  
+    switch (field) {
+      case "phone":
+        userStates.set(chatId, { state: EDIT_STATES.EDITING_PHONE });
+        await bot.sendMessage(
+          chatId,
+          "Введите новый номер телефона в формате +7XXXXXXXXXX:",
+          { reply_markup: backToAppointmentKeyboard }
+        );
+        break;
+  
+      case "birthdate":
+        userStates.set(chatId, { state: EDIT_STATES.EDITING_BIRTHDATE });
+        await bot.sendMessage(
+          chatId,
+          "Введите новую дату рождения в формате ДД.ММ.ГГГГ:",
+          { reply_markup: backToAppointmentKeyboard }
+        );
+        break;
+  
+      case "fullname":
+        userStates.set(chatId, { state: EDIT_STATES.EDITING_FULLNAME });
+        await bot.sendMessage(
+          chatId,
+          "Введите ваши ФИО полностью (Фамилия Имя Отчество):",
+          { reply_markup: backToAppointmentKeyboard }
+        );
+        break;
+  
+      case "gender":
+        userStates.set(chatId, { state: EDIT_STATES.EDITING_GENDER });
+        await showEditGenderKeyboard(chatId);
+        break;
+  
+      case "all":
+        userStates.set(chatId, {
+          state: EDIT_STATES.EDITING_ALL,
+          currentField: "phone",
+        });
+        await startEditAllProcess(chatId);
+        break;
+  
+      case "back":
+        await handleAppointmentRequest(chatId);
+        break;
+    }
   }
-}
 
 async function handleEditAllState(chatId, text, currentField) {
   try {
@@ -1280,14 +1242,13 @@ async function notifyAdminsAboutNewRequest(userId) {
     });
 
     const message =
-      `*📝 Заявка #${lastRequest.id}*\n\n` +
-      `👤 *Пациент:* ${user.full_name}\n` +
-      `📱 *Телефон:* ${user.phone}\n` +
-      `📧 *Email:* ${user.email || "Не указан"}\n` +
-      `📅 *Дата рождения:* ${user.birthdate || "Не указана"}\n` +
-      `👥 *Пол:* ${user.gender === "male" ? "Мужской" : "Женский"}\n` +
-      `🔗 *Username:* ${user.username ? "@" + user.username : "Не указан"}\n` +
-      `⏰ *Дата создания:* ${formatDate(new Date())}`;
+  `*📝 Заявка #${lastRequest.id}*\n\n` +
+  `👤 *Пациент:* ${user.full_name}\n` +
+  `📱 *Телефон:* ${user.phone}\n` +
+  `📅 *Дата рождения:* ${user.birthdate || "Не указана"}\n` +
+  `👥 *Пол:* ${user.gender === "male" ? "Мужской" : "Женский"}\n` +
+  `🔗 *Username:* ${user.username ? "@" + user.username : "Не указан"}\n` +
+  `⏰ *Дата создания:* ${formatDate(new Date())}`;
 
     const keyboard = {
       inline_keyboard: [
@@ -2463,13 +2424,115 @@ bot.on("contact", async (msg) => {
 });
 
 // Обработчик фотографий
+// Обработчик фотографий
 bot.on("photo", async (msg) => {
-  const chatId = msg.chat.id;
-  const state = userStates.get(chatId);
+    const chatId = msg.chat.id;
+    const state = userStates.get(chatId);
+  
+    if (state && state.state === "WAITING_FOR_TEETH_PHOTO") {
+      try {
+        await bot.sendMessage(chatId, `🔍 Анализирую фотографию ваших зубов...`);
+  
+        // Получаем ID последней фотографии из массива photo
+        const photoId = msg.photo[msg.photo.length - 1].file_id;
+  
+        // Получаем URL для скачивания фотографии
+        const file = await bot.getFile(photoId);
+        const fileUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+  
+        // Скачиваем фотографию
+        const photoResponse = await axios.get(fileUrl, {
+          responseType: "arraybuffer",
+        });
+  
+        // Сохраняем файл во временную директорию
+        const filePath = path.join(__dirname, `temp_${photoId}.jpg`);
+        fs.writeFileSync(filePath, photoResponse.data);
+  
+        // Загружаем файл в Gemini
+        const uploadResult = await fileManager.uploadFile(filePath, {
+          mimeType: "image/jpeg",
+        });
+  
+        // Подготовка файла для запроса
+        const photoPart = {
+          fileData: {
+            fileUri: uploadResult.file.uri,
+            mimeType: uploadResult.file.mimeType,
+          },
+        };
+  
+        // Формируем промпт для модели
+        const prompt = `
+          ТЫ - ВЕДУЩИЙ ЭКСПЕРТ В ОБЛАСТИ СТОМАТОЛОГИИ. ТВОЯ ЗАДАЧА - НА ОСНОВЕ ПРЕДОСТАВЛЕННОГО ФОТО сделать предварительный анализ СОСТОЯНИЯ ЗУБОВ И ДЁСЕН, а также прикуса и кривости зубов, ПРЕДЛОЖИТЬ РЕКОМЕНДАЦИИ ПО ЕЖЕДНЕВНОМУ УХОДУ. УТОЧНИТЬ если СЛЕДУЕТ ОБРАТИТЬСЯ К СТОМАТОЛОГУ.
+  
+          ЦЕЛИ:
+          Сделать предварительный анализ ФОТО ПО СЛЕДУЮЩИМ КРИТЕРИЯМ:
+          - Цвет зубов: белизна, пятна, изменение цвета
+          - Поверхность зубов: трещины, сколы, неровности
+          - Состояние дёсен: покраснение, отёк, кровоточивость
+          - Прикус и искривление зубов
+  
+          ЕСЛИ ФОТО НИЗКОГО КАЧЕСТВА:
+          Дать рекомендации для съёмки (освещение, ракурс, качество фото).
+  
+          ПРЕДЛОЖИТЬ УЛУЧШЕННЫЙ УХОД:
+          Ирригатор, зубная нить, пасты, ополаскиватели, диета.
+  
+          Используй следующий формат ответа:
+  
+          АНАЛИЗ ФОТО:
+          [Подробное описание состояния зубов и дёсен]
+  
+          ПРЕДЛОЖЕНИЯ ПО УХОДУ:
+          [Дневной уход и профилактические меры]
+  
+          РЕКОМЕНДАЦИИ ПО ВИЗИТУ К ВРАЧУ:
+          [Уточнить, в каких случаях обязательно обратиться к стоматологу]
+  
+          ЗАКЛЮЧЕНИЕ:
+          [Резюме действий для пользователя]
+        `;
+  
+        // Отправляем запрос в модель
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const generateResult = await model.generateContent([prompt, photoPart]);
+        const response = await generateResult.response;
+        const responseText = await response.text();
+  
+        // Проверяем результат
+        if (!responseText || responseText.toLowerCase().includes("не могу анализировать")) {
+          throw new Error("Модель отказалась анализировать фото");
+        }
+  
+        // Отправляем результат пользователю
+        await bot.sendMessage(chatId, `${responseText}`);
+  
+        // Удаляем временный файл
+        fs.unlinkSync(filePath);
+  
+        await showMainMenu(chatId, "Выберите действие:");
+      } catch (error) {
+        console.error("Ошибка при обработке фотографии:", error);
+        await bot.sendMessage(
+          chatId,
+          "Произошла ошибка при анализе фотографии. Пожалуйста, попробуйте позже."
+        );
+        await showMainMenu(chatId, "Выберите действие:");
+      } finally {
+        userStates.delete(chatId);
+      }
+    }
+  });
 
-  if (state && state.state === "WAITING_FOR_TEETH_PHOTO") {
-    await handleTeethPhoto(msg);
+  // Обработчик текстовых сообщений
+bot.on("message", async (msg) => {
+  const chatId = msg.chat.id;
+
+  if (msg.text === "◀️ Назад в меню") {
     userStates.delete(chatId);
+    await showMainMenu(chatId);
+    return;
   }
 });
 
@@ -2614,14 +2677,19 @@ bot.on("text", async (msg) => {
         await handleAppointmentRequest(chatId);
         break;
 
-      case "🦷 Анализ зубов":
-        await bot.sendMessage(
-          chatId,
-          "Пожалуйста, отправьте фотографию ваших зубов для анализа. Постарайтесь сделать четкое фото при хорошем освещении.",
-          { reply_markup: { remove_keyboard: true } }
-        );
-        userStates.set(chatId, { state: "WAITING_FOR_TEETH_PHOTO" });
-        break;
+        case "🦷 Анализ зубов":
+            await bot.sendMessage(
+              chatId,
+              "Пожалуйста, отправьте фотографию ваших зубов для анализа. Постарайтесь сделать четкое фото при хорошем освещении.",
+              {
+                reply_markup: {
+                  keyboard: [["◀️ Назад в меню"]],
+                  resize_keyboard: true,
+                },
+              }
+            );
+            userStates.set(chatId, { state: "WAITING_FOR_TEETH_PHOTO" });
+            break;
 
       case "⚙️ Админ-панель":
         if (isUserAdmin) {

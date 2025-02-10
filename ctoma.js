@@ -2542,16 +2542,6 @@ bot.on("photo", async (msg) => {
     }
   });
 
-  // Обработчик текстовых сообщений
-bot.on("message", async (msg) => {
-  const chatId = msg.chat.id;
-
-  if (msg.text === "◀️ Назад в меню") {
-    userStates.delete(chatId);
-    await showMainMenu(chatId);
-    return;
-  }
-});
 
 // Обработчик текстовых сообщений
 bot.on("text", async (msg) => {

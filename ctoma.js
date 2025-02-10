@@ -2518,8 +2518,8 @@ bot.on("photo", async (msg) => {
           chatId,
           "Произошла ошибка при анализе фотографии. Пожалуйста, попробуйте позже."
         );
-        await showMainMenu(chatId, "Выберите действие:");
-      } finally {
+    //     await showMainMenu(chatId, "Выберите действие:");
+    //   } finally {
         userStates.delete(chatId);
       }
     }

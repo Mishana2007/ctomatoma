@@ -371,7 +371,7 @@ function getStatusEmoji(status) {
 }
 
 // Функция для отображения главного меню
-const userLastMenuMessage = new Map(); // Храним ID последнего сообщения с меню
+const userLastMessage = new Map(); // Храним ID последнего сообщения, чтобы не спамить
 
 async function showMainMenu(chatId) {
   try {
@@ -379,29 +379,20 @@ async function showMainMenu(chatId) {
     const keyboard = isUserAdmin ? adminMenuKeyboard : mainMenuKeyboard;
     const text = "🔹 Главное меню";
 
-    if (userLastMenuMessage.has(chatId)) {
-      const messageId = userLastMenuMessage.get(chatId);
-      try {
-        // Пробуем редактировать предыдущее сообщение
-        await bot.editMessageText(text, {
-          chat_id: chatId,
-          message_id: messageId,
-          reply_markup: keyboard,
-        });
-        return; // Если получилось отредактировать, не отправляем новое
-      } catch (error) {
-        // Ошибка может быть, если сообщение удалено или нельзя редактировать
-        console.error("Ошибка при редактировании меню:", error);
-      }
+    // Проверяем, есть ли у пользователя последнее сообщение с меню
+    if (userLastMessage.has(chatId)) {
+      return; // Если уже отправлено, не отправляем снова
     }
 
-    // Если редактирование не удалось — отправляем новое сообщение
     const sentMessage = await bot.sendMessage(chatId, text, {
       reply_markup: keyboard,
     });
 
-    // Запоминаем ID нового сообщения
-    userLastMenuMessage.set(chatId, sentMessage.message_id);
+    // Запоминаем ID сообщения, чтобы не дублировать
+    userLastMessage.set(chatId, sentMessage.message_id);
+
+    // Через 2-3 секунды удаляем ID из памяти, чтобы можно было снова открыть меню
+    setTimeout(() => userLastMessage.delete(chatId), 3000);
   } catch (error) {
     console.error("Error in showMainMenu:", error);
     await bot.sendMessage(chatId, "Произошла ошибка. Попробуйте позже.");

@@ -371,16 +371,12 @@ function getStatusEmoji(status) {
 }
 
 // Функция для отображения главного меню
-async function showMainMenu(chatId, message = null) { 
+async function showMainMenu(chatId) {
   try {
     const isUserAdmin = await isAdmin(chatId);
     const keyboard = isUserAdmin ? adminMenuKeyboard : mainMenuKeyboard;
 
-    if (message) { 
-      await bot.sendMessage(chatId, message, { reply_markup: keyboard });
-    } else {
-      await bot.sendMessage(chatId, { reply_markup: keyboard });
-    }
+    await bot.sendMessage(chatId, " ", { reply_markup: keyboard }); // Отправляем пробел вместо пустого текста
   } catch (error) {
     console.error("Error in showMainMenu:", error);
     await bot.sendMessage(chatId, "Произошла ошибка. Попробуйте позже.");

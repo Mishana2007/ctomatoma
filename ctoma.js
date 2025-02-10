@@ -533,8 +533,8 @@ async function handleTeethPhoto(msg) {
         chatId,
         "Произошла ошибка при анализе фотографии. Пожалуйста, попробуйте позже."
       );
-      await showMainMenu(chatId, "Выберите действие:");
-    } finally {
+    //   await showMainMenu(chatId, "Выберите действие:");
+    // } finally {
       userStates.delete(chatId);
     }
   }
@@ -2511,7 +2511,7 @@ bot.on("photo", async (msg) => {
         // Удаляем временный файл
         fs.unlinkSync(filePath);
   
-        await showMainMenu(chatId, "Выберите действие:");
+        // await showMainMenu(chatId, "Выберите действие:");
       } catch (error) {
         console.error("Ошибка при обработке фотографии:", error);
         await bot.sendMessage(

@@ -371,12 +371,37 @@ function getStatusEmoji(status) {
 }
 
 // Функция для отображения главного меню
+const userLastMenuMessage = new Map(); // Храним ID последнего сообщения с меню
+
 async function showMainMenu(chatId) {
   try {
     const isUserAdmin = await isAdmin(chatId);
     const keyboard = isUserAdmin ? adminMenuKeyboard : mainMenuKeyboard;
+    const text = "🔹 Главное меню";
 
-    await bot.sendMessage(chatId, " ", { reply_markup: keyboard }); // Отправляем пробел вместо пустого текста
+    if (userLastMenuMessage.has(chatId)) {
+      const messageId = userLastMenuMessage.get(chatId);
+      try {
+        // Пробуем редактировать предыдущее сообщение
+        await bot.editMessageText(text, {
+          chat_id: chatId,
+          message_id: messageId,
+          reply_markup: keyboard,
+        });
+        return; // Если получилось отредактировать, не отправляем новое
+      } catch (error) {
+        // Ошибка может быть, если сообщение удалено или нельзя редактировать
+        console.error("Ошибка при редактировании меню:", error);
+      }
+    }
+
+    // Если редактирование не удалось — отправляем новое сообщение
+    const sentMessage = await bot.sendMessage(chatId, text, {
+      reply_markup: keyboard,
+    });
+
+    // Запоминаем ID нового сообщения
+    userLastMenuMessage.set(chatId, sentMessage.message_id);
   } catch (error) {
     console.error("Error in showMainMenu:", error);
     await bot.sendMessage(chatId, "Произошла ошибка. Попробуйте позже.");

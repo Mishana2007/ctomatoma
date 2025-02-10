@@ -526,7 +526,7 @@ async function handleTeethPhoto(msg) {
       // Отправляем результат пользователю
       await bot.sendMessage(chatId, `${responseText}`);
 
-      await showMainMenu(chatId, "Выберите действие:");
+    //   await showMainMenu(chatId, "Выберите действие:");
     } catch (error) {
       console.error("Ошибка при обработке фотографии:", error);
       await bot.sendMessage(
@@ -666,11 +666,11 @@ async function showPromotions(chatId) {
       }
     }
 
-    await bot.sendMessage(chatId, "Выберите действие:", {
-      reply_markup: (await isAdmin(chatId))
-        ? adminMenuKeyboard
-        : mainMenuKeyboard,
-    });
+    // await bot.sendMessage(chatId, "Выберите действие:", {
+    //   reply_markup: (await isAdmin(chatId))
+    //     ? adminMenuKeyboard
+    //     : mainMenuKeyboard,
+    // });
   } catch (error) {
     console.error("Error showing promotions:", error);
     await bot.sendMessage(chatId, "Произошла ошибка при загрузке акций.");
